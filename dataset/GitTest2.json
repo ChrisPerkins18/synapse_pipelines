@@ -1,0 +1,36 @@
+{
+	"name": "GitTest2",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Parameter_test_blob",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "Data2.txt",
+				"container": "test"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "1",
+				"type": "String"
+			},
+			{
+				"name": "2",
+				"type": "String"
+			},
+			{
+				"name": "3",
+				"type": "String"
+			}
+		]
+	}
+}
