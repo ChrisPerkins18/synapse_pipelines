@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 5",
+	"properties": {
+		"content": {
+			"query": "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'Password123' ;\n\nCREATE DATABASE SCOPED CREDENTIAL [BlobAccess]\nWITH IDENTITY='SHARED ACCESS SIGNATURE',  \nSECRET = 'sp=r&st=2024-01-04T13:58:55Z&se=2024-02-01T21:58:55Z&sv=2022-11-02&sr=c&sig=eyD9txu%2F9ZLRWZ8hEmZshQ4CjWD4ybwfE0b8F%2F4zuoI%3D'\nGO\nCREATE EXTERNAL DATA SOURCE BlobAccessData WITH (\n    LOCATION = 'https://datalaketest18.blob.core.windows.net/test',\n    CREDENTIAL = BlobAccess\n);\n\nCREATE EXTERNAL FILE FORMAT CSV WITH (    FORMAT_TYPE = DELIMITEDTEXT,\n    FORMAT_OPTIONS ( FIELD_TERMINATOR = ',') );\n\n\nCREATE TABLE PERSISTED.APP.DATA123\n( C1 int,\nC2 int,\nC3 int\n    \n)  \n\nWITH (\n    LOCATION = 'Data2.txt',\n    DATA_SOURCE = BlobAccessData,\n    FILE_FORMAT = csv\n)\nGO\n\nSELECT * FROM Landing.APP.DATA123\n\nCREATE USER serviceprincipal FROM EXTERNAL PROVIDER [christest-sp];\n\nGRANT REFERENCES ON DATABASE SCOPED CREDENTIAL::BlobAccess TO [christest-sp]\n\nGRANT control on database::Landing to [christest-sp]\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "Landing",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

@@ -1,0 +1,48 @@
+{
+	"name": "Numbers",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Parameter_test_blob",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"FileLocation": {
+				"type": "string",
+				"defaultValue": "bronze"
+			},
+			"Container": {
+				"type": "string",
+				"defaultValue": "test"
+			},
+			"File": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "@dataset().File",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().FileLocation",
+					"type": "Expression"
+				},
+				"container": {
+					"value": "@dataset().Container",
+					"type": "Expression"
+				}
+			},
+			"columnDelimiter": ",",
+			"rowDelimiter": "\n",
+			"escapeChar": "\\",
+			"firstRowAsHeader": false,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

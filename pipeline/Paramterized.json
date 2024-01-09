@@ -1,0 +1,128 @@
+{
+	"name": "Paramterized",
+	"properties": {
+		"activities": [
+			{
+				"name": "PipelineIterator",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.PipelineRuns",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Copy",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "SnowflakeSink",
+									"importSettings": {
+										"type": "SnowflakeImportCopyCommand"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "Numbers",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileLocation": {
+											"value": "@item().filelocation",
+											"type": "Expression"
+										},
+										"Container": {
+											"value": "@item().container",
+											"type": "Expression"
+										},
+										"File": {
+											"value": "@item().file",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Snowflake_Parameterized",
+									"type": "DatasetReference",
+									"parameters": {
+										"Schema": {
+											"value": "@item().schema",
+											"type": "Expression"
+										},
+										"Table": {
+											"value": "@item().table",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"PipelineRuns": {
+				"type": "array",
+				"defaultValue": [
+					{
+						"container": "test",
+						"filelocation": "bronze",
+						"file": "one.csv",
+						"schema": "PUBLIC",
+						"table": "NUMBERS"
+					},
+					{
+						"container": "test",
+						"filelocation": "silver",
+						"file": "two.csv",
+						"schema": "PUBLIC",
+						"table": "NUMBERS"
+					},
+					{
+						"container": "test",
+						"filelocation": "gold",
+						"file": "three.csv",
+						"schema": "PUBLIC",
+						"table": "NUMBERS"
+					},
+					{
+						"container": "test",
+						"filelocation": "bronze",
+						"file": "four.csv",
+						"schema": "PUBLIC",
+						"table": "NUMBERS2"
+					}
+				]
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-01-05T14:22:48Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

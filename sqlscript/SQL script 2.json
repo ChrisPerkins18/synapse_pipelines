@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 2",
+	"properties": {
+		"content": {
+			"query": "CREATE SCHEMA APP;\nCREATE SCHEMA AGG;\nCREATE SCHEMA CMSN;\n\ncreate view table1(\n\n)\n\ncreate schema Audit;\ncreate schema APP\n\n\n\nshow external table APP.DATA principal roles\n\n.show external table ExternalTableName principal roles\n\ncreate table APP.Data(\n    c1 int,\n    c2 int,\n    c3 int\n)\n\nselect * from test123",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "PERSISTED",
+				"poolName": "PERSISTED"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
