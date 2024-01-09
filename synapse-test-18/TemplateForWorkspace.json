@@ -1,0 +1,772 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"type": "string",
+			"metadata": "Workspace name",
+			"defaultValue": "synapse-test-18"
+		},
+		"AzureBlobStorage3_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureBlobStorage3'"
+		},
+		"Snowflake_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Snowflake'"
+		},
+		"SqlServerTest_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'SqlServerTest'"
+		},
+		"synapse-test-18-WorkspaceDefaultSqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'synapse-test-18-WorkspaceDefaultSqlServer'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:synapse-test-18.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"AzureBlobStorage1_sasUri": {
+			"type": "secureString",
+			"metadata": "Secure string for 'sasUri' of 'AzureBlobStorage1'"
+		},
+		"AzureBlobStorage2_sasUri": {
+			"type": "secureString",
+			"metadata": "Secure string for 'sasUri' of 'AzureBlobStorage2'"
+		},
+		"BlobParamterTest_sasUri": {
+			"type": "secureString",
+			"metadata": "Secure string for 'sasUri' of 'BlobParamterTest'"
+		},
+		"Parameter_test_blob_sasUri": {
+			"type": "secureString",
+			"metadata": "Secure string for 'sasUri' of 'Parameter_test_blob'"
+		},
+		"synapse-test-18-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://datalaketest18.dfs.core.windows.net"
+		}
+	},
+	"variables": {
+		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/Paramterized')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "PipelineIterator",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@pipeline().parameters.PipelineRuns",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Copy",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobStorageReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "SnowflakeSink",
+											"importSettings": {
+												"type": "SnowflakeImportCopyCommand"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "Numbers",
+											"type": "DatasetReference",
+											"parameters": {
+												"FileLocation": {
+													"value": "@item().filelocation",
+													"type": "Expression"
+												},
+												"Container": {
+													"value": "@item().container",
+													"type": "Expression"
+												},
+												"File": {
+													"value": "@item().file",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "Snowflake_Parameterized",
+											"type": "DatasetReference",
+											"parameters": {
+												"Schema": {
+													"value": "@item().schema",
+													"type": "Expression"
+												},
+												"Table": {
+													"value": "@item().table",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"PipelineRuns": {
+						"type": "array",
+						"defaultValue": [
+							{
+								"container": "test",
+								"filelocation": "bronze",
+								"file": "one.csv",
+								"schema": "PUBLIC",
+								"table": "NUMBERS"
+							},
+							{
+								"container": "test",
+								"filelocation": "silver",
+								"file": "two.csv",
+								"schema": "PUBLIC",
+								"table": "NUMBERS"
+							},
+							{
+								"container": "test",
+								"filelocation": "gold",
+								"file": "three.csv",
+								"schema": "PUBLIC",
+								"table": "NUMBERS"
+							},
+							{
+								"container": "test",
+								"filelocation": "bronze",
+								"file": "four.csv",
+								"schema": "PUBLIC",
+								"table": "NUMBERS2"
+							}
+						]
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2024-01-05T14:22:48Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/Numbers')]",
+				"[concat(variables('workspaceId'), '/datasets/Snowflake_Parameterized')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Pipeline2')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "SnowflakeSink",
+								"importSettings": {
+									"type": "SnowflakeImportCopyCommand"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "Data",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Snowflake_Sink",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-12-12T14:55:21Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/Data')]",
+				"[concat(variables('workspaceId'), '/datasets/Snowflake_Sink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Data')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage2",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Data2.txt",
+						"container": "test"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": false,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/AzureBlobStorage2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DelimitedText1')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Data2.txt",
+						"container": "container1"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": false,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/AzureBlobStorage1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/GitTest2')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Parameter_test_blob",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Data2.txt",
+						"container": "test"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "1",
+						"type": "String"
+					},
+					{
+						"name": "2",
+						"type": "String"
+					},
+					{
+						"name": "3",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/Parameter_test_blob')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Numbers')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Parameter_test_blob",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FileLocation": {
+						"type": "string",
+						"defaultValue": "bronze"
+					},
+					"Container": {
+						"type": "string",
+						"defaultValue": "test"
+					},
+					"File": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": {
+							"value": "@dataset().File",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().FileLocation",
+							"type": "Expression"
+						},
+						"container": {
+							"value": "@dataset().Container",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": false,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/Parameter_test_blob')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Snowflake_Parameterized')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Snowflake",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Schema": {
+						"type": "string"
+					},
+					"Table": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "SnowflakeTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().Schema",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().Table",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/Snowflake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Snowflake_Sink')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Snowflake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "SnowflakeTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "PUBLIC",
+					"table": "NUMBERS"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/Snowflake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AzureBlobStorage1')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"sasUri": "[parameters('AzureBlobStorage1_sasUri')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AzureBlobStorage2')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"sasUri": "[parameters('AzureBlobStorage2_sasUri')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AzureBlobStorage3')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('AzureBlobStorage3_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/BlobParamterTest')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"sasUri": "[parameters('BlobParamterTest_sasUri')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Parameter_test_blob')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"sasUri": "[parameters('Parameter_test_blob_sasUri')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Snowflake')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "Snowflake",
+				"typeProperties": {
+					"authenticationType": "Basic",
+					"connectionString": "[parameters('Snowflake_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SqlServerTest')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"Database": {
+						"type": "String",
+						"defaultValue": "TestDB"
+					}
+				},
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"connectionString": "[parameters('SqlServerTest_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/synapse-test-18-WorkspaceDefaultSqlServer')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"DBName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('synapse-test-18-WorkspaceDefaultSqlServer_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/synapse-test-18-WorkspaceDefaultStorage')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('synapse-test-18-WorkspaceDefaultStorage_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/WorkspaceSystemIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/credentials",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "ManagedIdentity",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 1')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "CREATE DATABASE LANDING;\nCREATE DATABASE STAGING;\nCREATE DATABASE DATAVAULT_STAGING;\nCREATE DATABASE DATAVAULT;\nCREATE DATABASE TRANSFORM;\nCREATE DATABASE ACCESS;\nCREATE SCHEMA APP;\nCREATE SCHEMA LANDING.AGG;\nCREATE SCHEMA LANDING.CMSN;\nCREATE SCHEMA STAGING.APP;\nCREATE SCHEMA STAGING.AGG;\nCREATE SCHEMA STAGING.CMSN;\nCREATE TABLE IF NOT EXISTS LANDING.APP.WA_APP_APPLICATION (\n    APPLICATIONTYPE string,\n        BRANDTYPE string,\n        CAMPAIGNCODE number,\n        CAMPAIGNVERSION string,\n        CHANGEDBY string NOT NULL,\n        CHANNELCODE string,\n        CONTEXTCODE string,\n        CONTEXTTYPE string,\n        DATECREATED datetime,\n        DATEMODIFIED datetime NOT NULL,\n        DATEUPDATED string,\n        ENDDATE datetime,\n        EXPIRYDATE datetime,\n        MODE string,\n        PROPINPUTDATE datetime,\n        ROUTE string,\n        STARTCAMPAIGNCODE string,\n        STARTDATE datetime,\n        SYSTEMEVENTDATE datetime,\n        SYSTEMEVENTTYPE string,\n        WA_APP_APPLICATIONID string NOT NULL,\n        APP_APPPUBLICREF string,\n        EXTERNALQUOTEREF string,\n        SLE_DEALREF string,\n        SUBEVENTREF string,\n        SYS_SYSTEMEVENTREF string NOT NULL,\n        WA_APP_APPLICATIONREF string NOT NULL,\n        PIPELINE_ID STRING NOT NULL,\n        FNAME STRING NOT NULL,\n        LOAD_TIMESTAMP TIMESTAMP NOT NULL\n);\nCREATE TABLE IF NOT EXISTS LANDING.APP.WA_APP_COVERAGEDETAILS (\n    APP_APPPUBLICREF string,\n        APP_COVERAGEDETAILSREF string NOT NULL,\n        CHANGEDBY string,\n        CONTEXTCODE string,\n        CONTEXTTYPE string,\n        COVERSTARTDATE datetime,\n        DATECREATED datetime,\n        DATEMODIFIED datetime,\n        DATEUPDATED datetime,\n        ENDDATE datetime,\n        STARTDATE datetime,\n        SYSTEMEVENTDATE datetime,\n        SYSTEMEVENTTYPE string,\n        TERM number,\n        TERMPERIODUNITTYPE string,\n        TOAGE number,\n        WA_APP_COVERAGEDETAILSID number NOT NULL,\n        SUBEVENTREF string,\n        SYS_SYSTEMEVENTREF string,\n        WA_APP_COVERAGEREF string,\n        PIPELINE_ID STRING NOT NULL,\n        FNAME STRING NOT NULL,\n        LOAD_TIMESTAMP TIMESTAMP NOT NULL\n);\nCREATE TABLE IF NOT EXISTS LANDING.APP.WA_APP_APPLICATIONDETAIL (\n    APP_APPLICATIONDETAILREF string NOT NULL,\n        APP_APPLICATIONPUBLICREF string,\n        APPSUBTYPE string,\n        CHANGEDBY string,\n        CONTEXTCODE string,\n        CONTEXTTYPE string,\n        DATECREATED datetime NOT NULL,\n        DATEMODIFIED datetime,\n        DATEUPDATED datetime NOT NULL,\n        ENDDATE datetime,\n        PARENTREFTYPE string,\n        STARTDATE datetime,\n        SYSTEMEVENTDATE datetime,\n        SYSTEMEVENTTYPE string,\n        WA_APP_APPLICATIONDETAILID number NOT NULL,\n        PARENTREF string,\n        SUBEVENTREF string,\n        SYS_SYSTEMEVENTREF string,\n        PIPELINE_ID STRING NOT NULL,\n        FNAME STRING NOT NULL,\n        LOAD_TIMESTAMP TIMESTAMP NOT NULL\n);\nCREATE TABLE IF NOT EXISTS LANDING.APP.WA_APP_ENDINGEVENT (\n    App_AppPublicRef string,\n        App_ProductRef string,\n        ChangedBy string NOT NULL,\n        ContextCode string,\n        ContextType string,\n        DateCreated datetime,\n        DateModified datetime NOT NULL,\n        DateUpdated datetime,\n        EffectiveDate datetime NOT NULL,\n        EventCode string,\n        EventReasonCode string,\n        SystemEventDate datetime,\n        SystemEventType string,\n        wa_App_EndingEventId number NOT NULL,\n        SubEventRef string,\n        Sys_SystemEventRef string NOT NULL,\n        wa_App_EndingEventRef string NOT NULL,\n        PIPELINE_ID STRING NOT NULL,\n        FNAME STRING NOT NULL,\n        LOAD_TIMESTAMP TIMESTAMP NOT NULL\n);\nCREATE TABLE IF NOT EXISTS LANDING.APP.WA_APP_PRODUCT (\n    App_AppPublicRef string,\n        App_ProductRef string NOT NULL,\n        App_QuoteProductRef string,\n        AdviceGivenFlag number,\n        CalcEffectiveDate datetime,\n        ChangedBy string NOT NULL,\n        CommencementDate datetime,\n        CommencementDateType string,\n        ContextCode string,\n        ContextType string,\n        CoverageSelection string,\n        DateCreated datetime,\n        DateModified datetime NOT NULL,\n        DateUpdated datetime,\n        EndDate datetime,\n        PolicySourceType string,\n        ProductCode string,\n        SequenceNumber string,\n        StartDate datetime,\n        SystemEventDate datetime,\n        SystemEventType string,\n        wa_App_ProductId number NOT NULL,\n        Ctrt_ContractPublicRef string,\n        ExternalContractRef string,\n        SubEventRef string,\n        Sys_SystemEventRef string NOT NULL,\n        PIPELINE_ID STRING NOT NULL,\n        FNAME STRING NOT NULL,\n        LOAD_TIMESTAMP TIMESTAMP NOT NULL\n);\nCREATE TABLE IF NOT EXISTS LANDING.APP.WA_APP_CONVERAGEOFFERTERMS (\n    app_apppublicref string,\n        app_coverageref string NOT NULL,\n        actualamountreceived numeric,\n        changedby string NOT NULL,\n        contextcode string,\n        contexttype string,\n        coveragecode string,\n        datecreated datetime,\n        datemodified datetime NOT NULL,\n        dateupdated datetime,\n        deferredperiodtype string,\n        deferredperiodunittype string,\n        definitionofdisablity string,\n        enddate datetime,\n        guaranteedperiodtype string,\n        overlaptype string,\n        paymentoptiontype string,\n        proportionatepaymenttype string,\n        startdate datetime,\n        sumassured numeric,\n        sumassuredfrequencytype string,\n        sumassuredtype string,\n        systemeventdate datetime,\n        systemeventtype string,\n        uwdecisiontype string,\n        uwtermstype string,\n        wa_app_coverageoffertermsid numeric NOT NULL,\n        subseventref string,\n        sys_systemeventref string NOT NULL,\n        wa_appcoverageoffertermsref string NOT NULL,\n        wa_app_offertermsref string NOT NULL,\n        PIPELINE_ID STRING NOT NULL,\n        FNAME STRING NOT NULL,\n        LOAD_TIMESTAMP TIMESTAMP NOT NULL\n);\nCREATE TABLE IF NOT EXISTS LANDING.APP.WA_APP_UWASSESSMENTPERSONAL (\n    app_apppublicref string,\n        age numeric,\n        bmi numeric,\n        changedby string NOT NULL,\n        contextcode string,\n        contexttype string,\n        datecreated datetime,\n        datemodified datetime NOT NULL,\n        dateofbirth datetime,\n        dateupdated datetime,\n        enddate datetime,\n        gendertype string,\n        occupationcode string,\n        salaryamount numeric,\n        smokerrange string,\n        smokertype string,\n        startdate datetime,\n        systemeventdate datetime,\n        systemeventtype string,\n        uwdecisionggrouptype string,\n        wa_app_uwassessmentpersonalid numeric NOT NULL,\n        subseventref string,\n        sys_systemeventref string NOT NULL,\n        wa_assessmentpersonalref string NOT NULL,\n        wa_app_uwassessmentref string NOT NULL,\n        PIPELINE_ID STRING NOT NULL,\n        FNAME STRING NOT NULL,\n        LOAD_TIMESTAMP TIMESTAMP NOT NULL\n);\nCREATE TABLE IF NOT EXISTS LANDING.AGG.WA_AGG_QUOTECLIENT (\n    AGG_QUOTECLIENTREF string NOT NULL,\n        BMI number,\n        BMICLASSCODE string,\n        BMIPRICINGTYPE string,\n        CHANGEDBY string NOT NULL,\n        CONTEXTCODE string,\n        CONTEXTTYPE string,\n        CUSTOMERID string,\n        DATECREATED datetime,\n        DATEMODIFIED datetime NOT NULL,\n        DATEOFBIRTH datetime,\n        DATEUPDATED datetime,\n        EMAILADDRESS string,\n        FORENAME string,\n        GENDERTYPE string,\n        INCOMEAMOUNT number,\n        MARITALSTATUSTYPE string,\n        MIDDLENAMES string,\n        OCCUPATIONCODE string,\n        POSTCODE string,\n        POSTCODEGROUPGODE string,\n        RESIDENCYTYPE string,\n        SMOKERTYPE string,\n        SURNAME string,\n        SYSTEMDATE datetime,\n        TITLECODE string,\n        WA_AGGQUOTECLIENTID string NOT NULL,\n        AGG_QUOTEREF string NOT NULL,\n        PIPELINE_ID STRING NOT NULL,\n        FNAME STRING NOT NULL,\n        LOAD_TIMESTAMP TIMESTAMP NOT NULL\n);\nCREATE TABLE IF NOT EXISTS LANDING.AGG.WA_AGG_QUOTEDETAILS (\n    AGG_QUOTEBASISREF string NOT NULL,\n        AGG_QUOTEDETAILSREF string NOT NULL,\n        CHANGEDBY string NOT NULL,\n        CONTEXTCODE string,\n        CONTEXTTYPE string,\n        COVERAGECLASSCODE string,\n        COVERAGECODE string,\n        DATECREATED datetime,\n        DATEMODIFIED datetime NOT NULL,\n        DATEUPDATED datetime,\n        DEFERREDPERIOD string,\n        DEFERREDPERIODUNITTYPE string,\n        DEFINITIONOFDISABILITY string,\n        ESCALATIONBASISTYPE string,\n        ESCALATIONPERCENTAGE number,\n        ESCALATIONTYPE string,\n        JOINTLIFEDEATHTYPE string,\n        MONETARYAMOUNT number,\n        REQUIREDPREMIUMAMOUNT number,\n        SACRIFICELAUTROPERCENTAGE number,\n        SUMASSURED number,\n        SUMASSUREDTYPE string,\n        SYSTEMDATE datetime,\n        TERMPERIOD number,\n        TERMPERIODUNITTYPE string,\n        TOAGE number,\n        WA_AGG_QUOTEDETAILSID string NOT NULL,\n        AGG_QUOTEREF string,\n        PIPELINE_ID STRING NOT NULL,\n        FNAME STRING NOT NULL,\n        LOAD_TIMESTAMP TIMESTAMP NOT NULL\n);\nCREATE TABLE IF NOT EXISTS LANDING.AGG.WA_AGG_QUOTEPRODUCT (\n    AGG_QUOTEPRODUCTREF string NOT NULL,\n        AGG_QUOTEREF string NOT NULL,\n        CHANGEDBY string NOT NULL,\n        CONTEXTCODE string,\n        CONTEXTTYPE string,\n        DATECREATED datetime,\n        DATEMODIFIED datetime NOT NULL,\n        DATEUPDATED datetime,\n        PRODUCTCODE string NOT NULL,\n        REASONFORCOVERCODE string,\n        SEQUENCENUMBER number,\n        SYSTEMDATE datetime,\n        WA_AGG_QUOTEPRODUCTID number NOT NULL,\n        PIPELINE_ID STRING NOT NULL,\n        FNAME STRING NOT NULL,\n        LOAD_TIMESTAMP TIMESTAMP NOT NULL\n);\nCREATE TABLE IF NOT EXISTS LANDING.AGG.WA_AGG_QUOTE (\n    AggregatorCustomerId string,\n        CampaignCode string,\n        ChangedBy string NOT NULL,\n        ChannelCode string,\n        ChannelID string,\n        ContextCode string,\n        ContextType string,\n        DateCreated datetime,\n        DateModified datetime NOT NULL,\n        DateUpdated datetime,\n        ExpiryDate datetime,\n        InitiatorID string,\n        Mode string,\n        PremiumFrequencyType string NOT NULL,\n        SystemDate datetime,\n        wa_Agg_QuoteId number NOT NULL,\n        AggQuoteGroupPublicRef string,\n        Agg_QuoteRef string NOT NULL,\n        ExternalAggregatorQuoteRef string,\n        SourceRef string NOT NULL,\n        PIPELINE_ID STRING NOT NULL,\n        FNAME STRING NOT NULL,\n        LOAD_TIMESTAMP TIMESTAMP NOT NULL\n);\nCREATE TABLE IF NOT EXISTS LANDING.CMSN.WA_CMSN_AGREEMENTTERMS (\n    cmsn_accountpublicref string,\n        cmsn_agreementtermsref string NOT NULL,\n        cmsn_agreementtrancheref string NOT NULL,\n        benefitclasscode string,\n        benefitcode string,\n        businessenddate datetime,\n        businessstartdate datetime,\n        changedby string NOT NULL,\n        clawbackperiod number,\n        clawbackperiodunittype string,\n        commissionbasistype string,\n        commissionclasstype string,\n        commissionpercentage numeric,\n        commissionperiodend datetime NOT NULL,\n        commissionperiodstart datetime NOT NULL,\n        commissionperiodtype string,\n        commissionperiodunittype string NOT NULL,\n        commissionsacrificepercentage numeric,\n        contextcode string,\n        contexttype string,\n        datecreated datetime,\n        datemodified datetime NOT NULL,\n        dateupdated datetime,\n        earningsperiod numeric,\n        earningsperiodunitype string,\n        enddate datetime,\n        initialperiod numeric,\n        initialperiodunittype string,\n        lautroadjustedratepercentage numeric,\n        lautrounterestpercentage numeric,\n        lautrorate numeric,\n        nilearningperiod numeric,\n        startdate datetime,\n        PIPELINE_ID STRING NOT NULL,\n        FNAME STRING NOT NULL,\n        LOAD_TIMESTAMP TIMESTAMP NOT NULL\n);\nCREATE OR REPLACE VIEW STAGING.APP.WA_APP_APPLICATION AS\n    SELECT\n        TRY_CAST(APPLICATIONTYPE::string as varchar) APPLICATIONTYPE,\n        TRY_CAST(BRANDTYPE::string as varchar) BRANDTYPE,\n        TRY_TO_NUMBER(CAMPAIGNCODE::number) CAMPAIGNCODE,\n        TRY_CAST(CAMPAIGNVERSION::string as varchar) CAMPAIGNVERSION,\n        TRY_CAST(CHANGEDBY::string as varchar) CHANGEDBY,\n        TRY_CAST(CHANNELCODE::string as varchar) CHANNELCODE,\n        TRY_CAST(CONTEXTCODE::string as varchar) CONTEXTCODE,\n        TRY_CAST(CONTEXTTYPE::string as varchar) CONTEXTTYPE,\n        TRY_TO_TIMESTAMP(cast(DATECREATED::string as string)) DATECREATED,\n        TRY_TO_TIMESTAMP(cast(DATEMODIFIED::string as string)) DATEMODIFIED,\n        TRY_CAST(DATEUPDATED::string as varchar) DATEUPDATED,\n        TRY_TO_TIMESTAMP(cast(ENDDATE::string as string)) ENDDATE,\n        TRY_TO_TIMESTAMP(cast(EXPIRYDATE::string as string)) EXPIRYDATE,\n        TRY_CAST(MODE::string as varchar) MODE,\n        TRY_TO_TIMESTAMP(cast(PROPINPUTDATE::string as string)) PROPINPUTDATE,\n        TRY_CAST(ROUTE::string as varchar) ROUTE,\n        TRY_CAST(STARTCAMPAIGNCODE::string as varchar) STARTCAMPAIGNCODE,\n        TRY_TO_TIMESTAMP(cast(STARTDATE::string as string)) STARTDATE,\n        TRY_TO_TIMESTAMP(cast(SYSTEMEVENTDATE::string as string)) SYSTEMEVENTDATE,\n        TRY_CAST(SYSTEMEVENTTYPE::string as varchar) SYSTEMEVENTTYPE,\n        TRY_CAST(WA_APP_APPLICATIONID::string as varchar) WA_APP_APPLICATIONID,\n        TRY_CAST(APP_APPPUBLICREF::string as varchar) APP_APPPUBLICREF,\n        TRY_CAST(EXTERNALQUOTEREF::string as varchar) EXTERNALQUOTEREF,\n        TRY_CAST(SLE_DEALREF::string as varchar) SLE_DEALREF,\n        TRY_CAST(SUBEVENTREF::string as varchar) SUBEVENTREF,\n        TRY_CAST(SYS_SYSTEMEVENTREF::string as varchar) SYS_SYSTEMEVENTREF,\n        TRY_CAST(WA_APP_APPLICATIONREF::string as varchar) WA_APP_APPLICATIONREF,\n    PIPELINE_ID,\n    FNAME,\n    LOAD_TIMESTAMP\n    from LANDING.APP.WA_APP_APPLICATION;\nCREATE OR REPLACE VIEW STAGING.APP.WA_APP_COVERAGEDETAILS AS\n    SELECT\n        TRY_CAST(APP_APPPUBLICREF::string as varchar) APP_APPPUBLICREF,\n        TRY_CAST(APP_COVERAGEDETAILSREF::string as varchar) APP_COVERAGEDETAILSREF,\n        TRY_CAST(CHANGEDBY::string as varchar) CHANGEDBY,\n        TRY_CAST(CONTEXTCODE::string as varchar) CONTEXTCODE,\n        TRY_CAST(CONTEXTTYPE::string as varchar) CONTEXTTYPE,\n        TRY_TO_TIMESTAMP(cast(COVERSTARTDATE::string as string)) COVERSTARTDATE,\n        TRY_TO_TIMESTAMP(cast(DATECREATED::string as string)) DATECREATED,\n        TRY_TO_TIMESTAMP(cast(DATEMODIFIED::string as string)) DATEMODIFIED,\n        TRY_TO_TIMESTAMP(cast(DATEUPDATED::string as string)) DATEUPDATED,\n        TRY_TO_TIMESTAMP(cast(ENDDATE::string as string)) ENDDATE,\n        TRY_TO_TIMESTAMP(cast(STARTDATE::string as string)) STARTDATE,\n        TRY_TO_TIMESTAMP(cast(SYSTEMEVENTDATE::string as string)) SYSTEMEVENTDATE,\n        TRY_CAST(SYSTEMEVENTTYPE::string as varchar) SYSTEMEVENTTYPE,\n        TRY_TO_NUMBER(TERM::number) TERM,\n        TRY_CAST(TERMPERIODUNITTYPE::string as varchar) TERMPERIODUNITTYPE,\n        TRY_TO_NUMBER(TOAGE::number) TOAGE,\n        TRY_TO_NUMBER(WA_APP_COVERAGEDETAILSID::number) WA_APP_COVERAGEDETAILSID,\n        TRY_CAST(SUBEVENTREF::string as varchar) SUBEVENTREF,\n        TRY_CAST(SYS_SYSTEMEVENTREF::string as varchar) SYS_SYSTEMEVENTREF,\n        TRY_CAST(WA_APP_COVERAGEREF::string as varchar) WA_APP_COVERAGEREF,\n    PIPELINE_ID,\n    FNAME,\n    LOAD_TIMESTAMP\n    from LANDING.APP.WA_APP_COVERAGEDETAILS;\nCREATE OR REPLACE VIEW STAGING.APP.WA_APP_APPLICATIONDETAIL AS\n    SELECT\n        TRY_CAST(APP_APPLICATIONDETAILREF::string as varchar) APP_APPLICATIONDETAILREF,\n        TRY_CAST(APP_APPLICATIONPUBLICREF::string as varchar) APP_APPLICATIONPUBLICREF,\n        TRY_CAST(APPSUBTYPE::string as varchar) APPSUBTYPE,\n        TRY_CAST(CHANGEDBY::string as varchar) CHANGEDBY,\n        TRY_CAST(CONTEXTCODE::string as varchar) CONTEXTCODE,\n        TRY_CAST(CONTEXTTYPE::string as varchar) CONTEXTTYPE,\n        TRY_TO_TIMESTAMP(cast(DATECREATED::string as string)) DATECREATED,\n        TRY_TO_TIMESTAMP(cast(DATEMODIFIED::string as string)) DATEMODIFIED,\n        TRY_TO_TIMESTAMP(cast(DATEUPDATED::string as string)) DATEUPDATED,\n        TRY_TO_TIMESTAMP(cast(ENDDATE::string as string)) ENDDATE,\n        TRY_CAST(PARENTREFTYPE::string as varchar) PARENTREFTYPE,\n        TRY_TO_TIMESTAMP(cast(STARTDATE::string as string)) STARTDATE,\n        TRY_TO_TIMESTAMP(cast(SYSTEMEVENTDATE::string as string)) SYSTEMEVENTDATE,\n        TRY_CAST(SYSTEMEVENTTYPE::string as varchar) SYSTEMEVENTTYPE,\n        TRY_TO_NUMBER(WA_APP_APPLICATIONDETAILID::number) WA_APP_APPLICATIONDETAILID,\n        TRY_CAST(PARENTREF::string as varchar) PARENTREF,\n        TRY_CAST(SUBEVENTREF::string as varchar) SUBEVENTREF,\n        TRY_CAST(SYS_SYSTEMEVENTREF::string as varchar) SYS_SYSTEMEVENTREF,\n    PIPELINE_ID,\n    FNAME,\n    LOAD_TIMESTAMP\n    from LANDING.APP.WA_APP_APPLICATIONDETAIL;\nCREATE OR REPLACE VIEW STAGING.APP.WA_APP_ENDINGEVENT AS\n    SELECT\n        TRY_CAST(App_AppPublicRef::string as varchar) App_AppPublicRef,\n        TRY_CAST(App_ProductRef::string as varchar) App_ProductRef,\n        TRY_CAST(ChangedBy::string as varchar) ChangedBy,\n        TRY_CAST(ContextCode::string as varchar) ContextCode,\n        TRY_CAST(ContextType::string as varchar) ContextType,\n        TRY_TO_TIMESTAMP(cast(DateCreated::string as string)) DateCreated,\n        TRY_TO_TIMESTAMP(cast(DateModified::string as string)) DateModified,\n        TRY_TO_TIMESTAMP(cast(DateUpdated::string as string)) DateUpdated,\n        TRY_TO_TIMESTAMP(cast(EffectiveDate::string as string)) EffectiveDate,\n        TRY_CAST(EventCode::string as varchar) EventCode,\n        TRY_CAST(EventReasonCode::string as varchar) EventReasonCode,\n        TRY_TO_TIMESTAMP(cast(SystemEventDate::string as string)) SystemEventDate,\n        TRY_CAST(SystemEventType::string as varchar) SystemEventType,\n        TRY_TO_NUMBER(wa_App_EndingEventId::number) wa_App_EndingEventId,\n        TRY_CAST(SubEventRef::string as varchar) SubEventRef,\n        TRY_CAST(Sys_SystemEventRef::string as varchar) Sys_SystemEventRef,\n        TRY_CAST(wa_App_EndingEventRef::string as varchar) wa_App_EndingEventRef,\n    PIPELINE_ID,\n    FNAME,\n    LOAD_TIMESTAMP\n    from LANDING.APP.WA_APP_ENDINGEVENT;\nCREATE OR REPLACE VIEW STAGING.APP.WA_APP_PRODUCT AS\n    SELECT\n        TRY_CAST(App_AppPublicRef::string as varchar) App_AppPublicRef,\n        TRY_CAST(App_ProductRef::string as varchar) App_ProductRef,\n        TRY_CAST(App_QuoteProductRef::string as varchar) App_QuoteProductRef,\n        TRY_TO_NUMBER(AdviceGivenFlag::number) AdviceGivenFlag,\n        TRY_TO_TIMESTAMP(cast(CalcEffectiveDate::string as string)) CalcEffectiveDate,\n        TRY_CAST(ChangedBy::string as varchar) ChangedBy,\n        TRY_TO_TIMESTAMP(cast(CommencementDate::string as string)) CommencementDate,\n        TRY_CAST(CommencementDateType::string as varchar) CommencementDateType,\n        TRY_CAST(ContextCode::string as varchar) ContextCode,\n        TRY_CAST(ContextType::string as varchar) ContextType,\n        TRY_CAST(CoverageSelection::string as varchar) CoverageSelection,\n        TRY_TO_TIMESTAMP(cast(DateCreated::string as string)) DateCreated,\n        TRY_TO_TIMESTAMP(cast(DateModified::string as string)) DateModified,\n        TRY_TO_TIMESTAMP(cast(DateUpdated::string as string)) DateUpdated,\n        TRY_TO_TIMESTAMP(cast(EndDate::string as string)) EndDate,\n        TRY_CAST(PolicySourceType::string as varchar) PolicySourceType,\n        TRY_CAST(ProductCode::string as varchar) ProductCode,\n        TRY_CAST(SequenceNumber::string as varchar) SequenceNumber,\n        TRY_TO_TIMESTAMP(cast(StartDate::string as string)) StartDate,\n        TRY_TO_TIMESTAMP(cast(SystemEventDate::string as string)) SystemEventDate,\n        TRY_CAST(SystemEventType::string as varchar) SystemEventType,\n        TRY_TO_NUMBER(wa_App_ProductId::number) wa_App_ProductId,\n        TRY_CAST(Ctrt_ContractPublicRef::string as varchar) Ctrt_ContractPublicRef,\n        TRY_CAST(ExternalContractRef::string as varchar) ExternalContractRef,\n        TRY_CAST(SubEventRef::string as varchar) SubEventRef,\n        TRY_CAST(Sys_SystemEventRef::string as varchar) Sys_SystemEventRef,\n    PIPELINE_ID,\n    FNAME,\n    LOAD_TIMESTAMP\n    from LANDING.APP.WA_APP_PRODUCT;\nCREATE OR REPLACE VIEW STAGING.APP.WA_APP_CONVERAGEOFFERTERMS AS\n    SELECT\n        TRY_CAST(app_apppublicref::string as varchar) app_apppublicref,\n        TRY_CAST(app_coverageref::string as varchar) app_coverageref,\n        TRY_TO_NUMBER(actualamountreceived::number) actualamountreceived,\n        TRY_CAST(changedby::string as varchar) changedby,\n        TRY_CAST(contextcode::string as varchar) contextcode,\n        TRY_CAST(contexttype::string as varchar) contexttype,\n        TRY_CAST(coveragecode::string as varchar) coveragecode,\n        TRY_TO_TIMESTAMP(cast(datecreated::string as string)) datecreated,\n        TRY_TO_TIMESTAMP(cast(datemodified::string as string)) datemodified,\n        TRY_TO_TIMESTAMP(cast(dateupdated::string as string)) dateupdated,\n        TRY_CAST(deferredperiodtype::string as varchar) deferredperiodtype,\n        TRY_CAST(deferredperiodunittype::string as varchar) deferredperiodunittype,\n        TRY_CAST(definitionofdisablity::string as varchar) definitionofdisablity,\n        TRY_TO_TIMESTAMP(cast(enddate::string as string)) enddate,\n        TRY_CAST(guaranteedperiodtype::string as varchar) guaranteedperiodtype,\n        TRY_CAST(overlaptype::string as varchar) overlaptype,\n        TRY_CAST(paymentoptiontype::string as varchar) paymentoptiontype,\n        TRY_CAST(proportionatepaymenttype::string as varchar) proportionatepaymenttype,\n        TRY_TO_TIMESTAMP(cast(startdate::string as string)) startdate,\n        TRY_TO_NUMBER(sumassured::number) sumassured,\n        TRY_CAST(sumassuredfrequencytype::string as varchar) sumassuredfrequencytype,\n        TRY_CAST(sumassuredtype::string as varchar) sumassuredtype,\n        TRY_TO_TIMESTAMP(cast(systemeventdate::string as string)) systemeventdate,\n        TRY_CAST(systemeventtype::string as varchar) systemeventtype,\n        TRY_CAST(uwdecisiontype::string as varchar) uwdecisiontype,\n        TRY_CAST(uwtermstype::string as varchar) uwtermstype,\n        TRY_TO_NUMBER(wa_app_coverageoffertermsid::number) wa_app_coverageoffertermsid,\n        TRY_CAST(subseventref::string as varchar) subseventref,\n        TRY_CAST(sys_systemeventref::string as varchar) sys_systemeventref,\n        TRY_CAST(wa_appcoverageoffertermsref::string as varchar) wa_appcoverageoffertermsref,\n        TRY_CAST(wa_app_offertermsref::string as varchar) wa_app_offertermsref,\n    PIPELINE_ID,\n    FNAME,\n    LOAD_TIMESTAMP\n    from LANDING.APP.WA_APP_CONVERAGEOFFERTERMS;\nCREATE OR REPLACE VIEW STAGING.APP.WA_APP_UWASSESSMENTPERSONAL AS\n    SELECT\n        TRY_CAST(app_apppublicref::string as varchar) app_apppublicref,\n        TRY_TO_NUMBER(age::number) age,\n        TRY_TO_NUMBER(bmi::number) bmi,\n        TRY_CAST(changedby::string as varchar) changedby,\n        TRY_CAST(contextcode::string as varchar) contextcode,\n        TRY_CAST(contexttype::string as varchar) contexttype,\n        TRY_TO_TIMESTAMP(cast(datecreated::string as string)) datecreated,\n        TRY_TO_TIMESTAMP(cast(datemodified::string as string)) datemodified,\n        TRY_TO_TIMESTAMP(cast(dateofbirth::string as string)) dateofbirth,\n        TRY_TO_TIMESTAMP(cast(dateupdated::string as string)) dateupdated,\n        TRY_TO_TIMESTAMP(cast(enddate::string as string)) enddate,\n        TRY_CAST(gendertype::string as varchar) gendertype,\n        TRY_CAST(occupationcode::string as varchar) occupationcode,\n        TRY_TO_NUMBER(salaryamount::number) salaryamount,\n        TRY_CAST(smokerrange::string as varchar) smokerrange,\n        TRY_CAST(smokertype::string as varchar) smokertype,\n        TRY_TO_TIMESTAMP(cast(startdate::string as string)) startdate,\n        TRY_TO_TIMESTAMP(cast(systemeventdate::string as string)) systemeventdate,\n        TRY_CAST(systemeventtype::string as varchar) systemeventtype,\n        TRY_CAST(uwdecisionggrouptype::string as varchar) uwdecisionggrouptype,\n        TRY_TO_NUMBER(wa_app_uwassessmentpersonalid::number) wa_app_uwassessmentpersonalid,\n        TRY_CAST(subseventref::string as varchar) subseventref,\n        TRY_CAST(sys_systemeventref::string as varchar) sys_systemeventref,\n        TRY_CAST(wa_assessmentpersonalref::string as varchar) wa_assessmentpersonalref,\n        TRY_CAST(wa_app_uwassessmentref::string as varchar) wa_app_uwassessmentref,\n    PIPELINE_ID,\n    FNAME,\n    LOAD_TIMESTAMP\n    from LANDING.APP.WA_APP_UWASSESSMENTPERSONAL;\nCREATE OR REPLACE VIEW STAGING.AGG.WA_AGG_QUOTECLIENT AS\n    SELECT\n        TRY_CAST(AGG_QUOTECLIENTREF::string as varchar) AGG_QUOTECLIENTREF,\n        TRY_TO_NUMBER(BMI::number) BMI,\n        TRY_CAST(BMICLASSCODE::string as varchar) BMICLASSCODE,\n        TRY_CAST(BMIPRICINGTYPE::string as varchar) BMIPRICINGTYPE,\n        TRY_CAST(CHANGEDBY::string as varchar) CHANGEDBY,\n        TRY_CAST(CONTEXTCODE::string as varchar) CONTEXTCODE,\n        TRY_CAST(CONTEXTTYPE::string as varchar) CONTEXTTYPE,\n        TRY_CAST(CUSTOMERID::string as varchar) CUSTOMERID,\n        TRY_TO_TIMESTAMP(cast(DATECREATED::string as string)) DATECREATED,\n        TRY_TO_TIMESTAMP(cast(DATEMODIFIED::string as string)) DATEMODIFIED,\n        TRY_TO_TIMESTAMP(cast(DATEOFBIRTH::string as string)) DATEOFBIRTH,\n        TRY_TO_TIMESTAMP(cast(DATEUPDATED::string as string)) DATEUPDATED,\n        TRY_CAST(EMAILADDRESS::string as varchar) EMAILADDRESS,\n        TRY_CAST(FORENAME::string as varchar) FORENAME,\n        TRY_CAST(GENDERTYPE::string as varchar) GENDERTYPE,\n        TRY_TO_NUMBER(INCOMEAMOUNT::number) INCOMEAMOUNT,\n        TRY_CAST(MARITALSTATUSTYPE::string as varchar) MARITALSTATUSTYPE,\n        TRY_CAST(MIDDLENAMES::string as varchar) MIDDLENAMES,\n        TRY_CAST(OCCUPATIONCODE::string as varchar) OCCUPATIONCODE,\n        TRY_CAST(POSTCODE::string as varchar) POSTCODE,\n        TRY_CAST(POSTCODEGROUPGODE::string as varchar) POSTCODEGROUPGODE,\n        TRY_CAST(RESIDENCYTYPE::string as varchar) RESIDENCYTYPE,\n        TRY_CAST(SMOKERTYPE::string as varchar) SMOKERTYPE,\n        TRY_CAST(SURNAME::string as varchar) SURNAME,\n        TRY_TO_TIMESTAMP(cast(SYSTEMDATE::string as string)) SYSTEMDATE,\n        TRY_CAST(TITLECODE::string as varchar) TITLECODE,\n        TRY_CAST(WA_AGGQUOTECLIENTID::string as varchar) WA_AGGQUOTECLIENTID,\n        TRY_CAST(AGG_QUOTEREF::string as varchar) AGG_QUOTEREF,\n    PIPELINE_ID,\n    FNAME,\n    LOAD_TIMESTAMP\n    from LANDING.AGG.WA_AGG_QUOTECLIENT;\nCREATE OR REPLACE VIEW STAGING.AGG.WA_AGG_QUOTEDETAILS AS\n    SELECT\n        TRY_CAST(AGG_QUOTEBASISREF::string as varchar) AGG_QUOTEBASISREF,\n        TRY_CAST(AGG_QUOTEDETAILSREF::string as varchar) AGG_QUOTEDETAILSREF,\n        TRY_CAST(CHANGEDBY::string as varchar) CHANGEDBY,\n        TRY_CAST(CONTEXTCODE::string as varchar) CONTEXTCODE,\n        TRY_CAST(CONTEXTTYPE::string as varchar) CONTEXTTYPE,\n        TRY_CAST(COVERAGECLASSCODE::string as varchar) COVERAGECLASSCODE,\n        TRY_CAST(COVERAGECODE::string as varchar) COVERAGECODE,\n        TRY_TO_TIMESTAMP(cast(DATECREATED::string as string)) DATECREATED,\n        TRY_TO_TIMESTAMP(cast(DATEMODIFIED::string as string)) DATEMODIFIED,\n        TRY_TO_TIMESTAMP(cast(DATEUPDATED::string as string)) DATEUPDATED,\n        TRY_CAST(DEFERREDPERIOD::string as varchar) DEFERREDPERIOD,\n        TRY_CAST(DEFERREDPERIODUNITTYPE::string as varchar) DEFERREDPERIODUNITTYPE,\n        TRY_CAST(DEFINITIONOFDISABILITY::string as varchar) DEFINITIONOFDISABILITY,\n        TRY_CAST(ESCALATIONBASISTYPE::string as varchar) ESCALATIONBASISTYPE,\n        TRY_TO_NUMBER(ESCALATIONPERCENTAGE::number) ESCALATIONPERCENTAGE,\n        TRY_CAST(ESCALATIONTYPE::string as varchar) ESCALATIONTYPE,\n        TRY_CAST(JOINTLIFEDEATHTYPE::string as varchar) JOINTLIFEDEATHTYPE,\n        TRY_TO_NUMBER(MONETARYAMOUNT::number) MONETARYAMOUNT,\n        TRY_TO_NUMBER(REQUIREDPREMIUMAMOUNT::number) REQUIREDPREMIUMAMOUNT,\n        TRY_TO_NUMBER(SACRIFICELAUTROPERCENTAGE::number) SACRIFICELAUTROPERCENTAGE,\n        TRY_TO_NUMBER(SUMASSURED::number) SUMASSURED,\n        TRY_CAST(SUMASSUREDTYPE::string as varchar) SUMASSUREDTYPE,\n        TRY_TO_TIMESTAMP(cast(SYSTEMDATE::string as string)) SYSTEMDATE,\n        TRY_TO_NUMBER(TERMPERIOD::number) TERMPERIOD,\n        TRY_CAST(TERMPERIODUNITTYPE::string as varchar) TERMPERIODUNITTYPE,\n        TRY_TO_NUMBER(TOAGE::number) TOAGE,\n        TRY_CAST(WA_AGG_QUOTEDETAILSID::string as varchar) WA_AGG_QUOTEDETAILSID,\n        TRY_CAST(AGG_QUOTEREF::string as varchar) AGG_QUOTEREF,\n    PIPELINE_ID,\n    FNAME,\n    LOAD_TIMESTAMP\n    from LANDING.AGG.WA_AGG_QUOTEDETAILS;\nCREATE OR REPLACE VIEW STAGING.AGG.WA_AGG_QUOTEPRODUCT AS\n    SELECT\n        TRY_CAST(AGG_QUOTEPRODUCTREF::string as varchar) AGG_QUOTEPRODUCTREF,\n        TRY_CAST(AGG_QUOTEREF::string as varchar) AGG_QUOTEREF,\n        TRY_CAST(CHANGEDBY::string as varchar) CHANGEDBY,\n        TRY_CAST(CONTEXTCODE::string as varchar) CONTEXTCODE,\n        TRY_CAST(CONTEXTTYPE::string as varchar) CONTEXTTYPE,\n        TRY_TO_TIMESTAMP(cast(DATECREATED::string as string)) DATECREATED,\n        TRY_TO_TIMESTAMP(cast(DATEMODIFIED::string as string)) DATEMODIFIED,\n        TRY_TO_TIMESTAMP(cast(DATEUPDATED::string as string)) DATEUPDATED,\n        TRY_CAST(PRODUCTCODE::string as varchar) PRODUCTCODE,\n        TRY_CAST(REASONFORCOVERCODE::string as varchar) REASONFORCOVERCODE,\n        TRY_TO_NUMBER(SEQUENCENUMBER::number) SEQUENCENUMBER,\n        TRY_TO_TIMESTAMP(cast(SYSTEMDATE::string as string)) SYSTEMDATE,\n        TRY_TO_NUMBER(WA_AGG_QUOTEPRODUCTID::number) WA_AGG_QUOTEPRODUCTID,\n    PIPELINE_ID,\n    FNAME,\n    LOAD_TIMESTAMP\n    from LANDING.AGG.WA_AGG_QUOTEPRODUCT;\nCREATE OR REPLACE VIEW STAGING.AGG.WA_AGG_QUOTE AS\n    SELECT\n        TRY_CAST(AggregatorCustomerId::string as varchar) AggregatorCustomerId,\n        TRY_CAST(CampaignCode::string as varchar) CampaignCode,\n        TRY_CAST(ChangedBy::string as varchar) ChangedBy,\n        TRY_CAST(ChannelCode::string as varchar) ChannelCode,\n        TRY_CAST(ChannelID::string as varchar) ChannelID,\n        TRY_CAST(ContextCode::string as varchar) ContextCode,\n        TRY_CAST(ContextType::string as varchar) ContextType,\n        TRY_TO_TIMESTAMP(cast(DateCreated::string as string)) DateCreated,\n        TRY_TO_TIMESTAMP(cast(DateModified::string as string)) DateModified,\n        TRY_TO_TIMESTAMP(cast(DateUpdated::string as string)) DateUpdated,\n        TRY_TO_TIMESTAMP(cast(ExpiryDate::string as string)) ExpiryDate,\n        TRY_CAST(InitiatorID::string as varchar) InitiatorID,\n        TRY_CAST(Mode::string as varchar) Mode,\n        TRY_CAST(PremiumFrequencyType::string as varchar) PremiumFrequencyType,\n        TRY_TO_TIMESTAMP(cast(SystemDate::string as string)) SystemDate,\n        TRY_TO_NUMBER(wa_Agg_QuoteId::number) wa_Agg_QuoteId,\n        TRY_CAST(AggQuoteGroupPublicRef::string as varchar) AggQuoteGroupPublicRef,\n        TRY_CAST(Agg_QuoteRef::string as varchar) Agg_QuoteRef,\n        TRY_CAST(ExternalAggregatorQuoteRef::string as varchar) ExternalAggregatorQuoteRef,\n        TRY_CAST(SourceRef::string as varchar) SourceRef,\n    PIPELINE_ID,\n    FNAME,\n    LOAD_TIMESTAMP\n    from LANDING.AGG.WA_AGG_QUOTE;\nCREATE OR REPLACE VIEW STAGING.CMSN.WA_CMSN_AGREEMENTTERMS AS\n    SELECT\n        TRY_CAST(cmsn_accountpublicref::string as varchar) cmsn_accountpublicref,\n        TRY_CAST(cmsn_agreementtermsref::string as varchar) cmsn_agreementtermsref,\n        TRY_CAST(cmsn_agreementtrancheref::string as varchar) cmsn_agreementtrancheref,\n        TRY_CAST(benefitclasscode::string as varchar) benefitclasscode,\n        TRY_CAST(benefitcode::string as varchar) benefitcode,\n        TRY_TO_TIMESTAMP(cast(businessenddate::string as string)) businessenddate,\n        TRY_TO_TIMESTAMP(cast(businessstartdate::string as string)) businessstartdate,\n        TRY_CAST(changedby::string as varchar) changedby,\n        TRY_TO_NUMBER(clawbackperiod::number) clawbackperiod,\n        TRY_CAST(clawbackperiodunittype::string as varchar) clawbackperiodunittype,\n        TRY_CAST(commissionbasistype::string as varchar) commissionbasistype,\n        TRY_CAST(commissionclasstype::string as varchar) commissionclasstype,\n        TRY_TO_NUMBER(commissionpercentage::number) commissionpercentage,\n        TRY_TO_TIMESTAMP(cast(commissionperiodend::string as string)) commissionperiodend,\n        TRY_TO_TIMESTAMP(cast(commissionperiodstart::string as string)) commissionperiodstart,\n        TRY_CAST(commissionperiodtype::string as varchar) commissionperiodtype,\n        TRY_CAST(commissionperiodunittype::string as varchar) commissionperiodunittype,\n        TRY_TO_NUMBER(commissionsacrificepercentage::number) commissionsacrificepercentage,\n        TRY_CAST(contextcode::string as varchar) contextcode,\n        TRY_CAST(contexttype::string as varchar) contexttype,\n        TRY_TO_TIMESTAMP(cast(datecreated::string as string)) datecreated,\n        TRY_TO_TIMESTAMP(cast(datemodified::string as string)) datemodified,\n        TRY_TO_TIMESTAMP(cast(dateupdated::string as string)) dateupdated,\n        TRY_TO_NUMBER(earningsperiod::number) earningsperiod,\n        TRY_CAST(earningsperiodunitype::string as varchar) earningsperiodunitype,\n        TRY_TO_TIMESTAMP(cast(enddate::string as string)) enddate,\n        TRY_TO_NUMBER(initialperiod::number) initialperiod,\n        TRY_CAST(initialperiodunittype::string as varchar) initialperiodunittype,\n        TRY_TO_NUMBER(lautroadjustedratepercentage::number) lautroadjustedratepercentage,\n        TRY_TO_NUMBER(lautrounterestpercentage::number) lautrounterestpercentage,\n        TRY_TO_NUMBER(lautrorate::number) lautrorate,\n        TRY_TO_NUMBER(nilearningperiod::number) nilearningperiod,\n        TRY_TO_TIMESTAMP(cast(startdate::string as string)) startdate,\n    PIPELINE_ID,\n    FNAME,\n    LOAD_TIMESTAMP\n    from LANDING.CMSN.WA_CMSN_AGREEMENTTERMS;",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "Test_Pool",
+						"poolName": "Test_Pool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 2')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "CREATE SCHEMA APP;\nCREATE SCHEMA AGG;\nCREATE SCHEMA CMSN;\n\ncreate view table1(\n\n)\n\ncreate schema Audit;\ncreate schema APP\n\n\n\nshow external table APP.DATA principal roles\n\n.show external table ExternalTableName principal roles\n\ncreate table APP.Data(\n    c1 int,\n    c2 int,\n    c3 int\n)\n\nselect * from test123",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "PERSISTED",
+						"poolName": "PERSISTED"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 3')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "IF NOT EXISTS (SELECT * FROM sys.external_file_formats WHERE name = 'SynapseDelimitedTextFormat') \n\tCREATE EXTERNAL FILE FORMAT [SynapseDelimitedTextFormat] \n\tWITH ( FORMAT_TYPE = DELIMITEDTEXT ,\n\t       FORMAT_OPTIONS (\n\t\t\t FIELD_TERMINATOR = ',',\n\t\t\t USE_TYPE_DEFAULT = FALSE\n\t\t\t))\nGO\n\nIF NOT EXISTS (SELECT * FROM sys.external_data_sources WHERE name = 'test_datalaketest18_dfs_core_windows_net') \n\tCREATE EXTERNAL DATA SOURCE [test_datalaketest18_dfs_core_windows_net] \n\tWITH (\n\t\tLOCATION = 'abfss://test@datalaketest18.dfs.core.windows.net' \n\t)\nGO\n\ngrant SELECT on external data source [test_datalaketest18_dfs_core_windows_net] to christest-sp\n\nCREATE EXTERNAL TABLE APP.Data (\n\t[C1] bigint,\n\t[C2] bigint,\n\t[C3] bigint\n\t)\n\tWITH (\n\tLOCATION = 'Data2.txt',\n\tDATA_SOURCE = [test_datalaketest18_dfs_core_windows_net],\n\tFILE_FORMAT = [SynapseDelimitedTextFormat]\n\t)\nGO\n\n\nSELECT TOP 100 * FROM APP.Data\nGO",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "Landing",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 4')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "select * from landing.app.data\n\ncreate view app.staging_data2 as(\n    select * from landing.app.data\n)",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "Landing",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 5')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'Password123' ;\n\nCREATE DATABASE SCOPED CREDENTIAL [BlobAccess]\nWITH IDENTITY='SHARED ACCESS SIGNATURE',  \nSECRET = 'sp=r&st=2024-01-04T13:58:55Z&se=2024-02-01T21:58:55Z&sv=2022-11-02&sr=c&sig=eyD9txu%2F9ZLRWZ8hEmZshQ4CjWD4ybwfE0b8F%2F4zuoI%3D'\nGO\nCREATE EXTERNAL DATA SOURCE BlobAccessData WITH (\n    LOCATION = 'https://datalaketest18.blob.core.windows.net/test',\n    CREDENTIAL = BlobAccess\n);\n\nCREATE EXTERNAL FILE FORMAT CSV WITH (    FORMAT_TYPE = DELIMITEDTEXT,\n    FORMAT_OPTIONS ( FIELD_TERMINATOR = ',') );\n\n\nCREATE TABLE PERSISTED.APP.DATA123\n( C1 int,\nC2 int,\nC3 int\n    \n)  \n\nWITH (\n    LOCATION = 'Data2.txt',\n    DATA_SOURCE = BlobAccessData,\n    FILE_FORMAT = csv\n)\nGO\n\nSELECT * FROM Landing.APP.DATA123\n\nCREATE USER serviceprincipal FROM EXTERNAL PROVIDER [christest-sp];\n\nGRANT REFERENCES ON DATABASE SCOPED CREDENTIAL::BlobAccess TO [christest-sp]\n\nGRANT control on database::Landing to [christest-sp]\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "Landing",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		}
+	]
+}
